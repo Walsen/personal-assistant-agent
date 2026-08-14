@@ -77,6 +77,7 @@ personal-assistant-agent/
 | [Module 4](docs/module-04-assembling-the-agent.md) | Assembling the Personal Assistant | 30 min |
 | [Module 5](docs/module-05-testing-iterating.md) | Testing & Iterating | 20 min |
 | [Module 6](docs/module-06-deploying-agentcore.md) | Deploying to AgentCore | 30 min |
+| [Module 7](docs/module-07-advanced-memory-harness.md) | **Advanced:** Memory, Storage & Harness | 45 min |
 
 ## 📄 License
 
