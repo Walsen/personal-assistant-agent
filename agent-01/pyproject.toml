@@ -1,0 +1,20 @@
+[project]
+name = "personal-assistant-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Sergio Rodriguez", email = "sergio@ffactory.io" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "strands-agents>=1.53.0",
+    "strands-agents-tools>=0.8.6",
+]
+
+[project.scripts]
+personal-assistant-agent = "personal_assistant_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
