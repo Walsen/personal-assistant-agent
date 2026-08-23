@@ -11,6 +11,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/drive.readonly",
 ]
 
 
@@ -47,3 +48,8 @@ def get_calendar_service():
 def get_docs_service():
     """Build and return the Google Docs API service client."""
     return build("docs", "v1", credentials=get_credentials())
+
+
+def get_drive_service():
+    """Build and return the Google Drive API service client."""
+    return build("drive", "v3", credentials=get_credentials())

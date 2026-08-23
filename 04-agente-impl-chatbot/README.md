@@ -21,6 +21,7 @@ Ahí, busca y habilita cada una de estas APIs (haz clic en cada resultado y lueg
 - **Gmail API** — busca "Gmail API" o ve directo al [enlace de la API](https://console.cloud.google.com/apis/library/gmail.googleapis.com)
 - **Google Calendar API** — busca "Google Calendar API" o ve directo al [enlace de la API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com)
 - **Google Docs API** — busca "Google Docs API" o ve directo al [enlace de la API](https://console.cloud.google.com/apis/library/docs.googleapis.com)
+- **Google Drive API** (necesaria para buscar documentos por nombre) — busca "Google Drive API" o ve directo al [enlace de la API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
 
 > Nota: si usas los enlaces directos, verifica en la parte superior de la página que el proyecto seleccionado sea el correcto antes de hacer clic en **Enable**.
 
