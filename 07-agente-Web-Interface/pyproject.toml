@@ -1,0 +1,20 @@
+[project]
+name = "personal-assistant-web-interface"
+version = "0.1.0"
+description = "Web chat client (backend proxy) for the personal assistant agent deployed to Amazon Bedrock AgentCore Runtime."
+readme = "README.md"
+authors = [
+    { name = "Sergio Rodriguez", email = "sergio@ffactory.io" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "infra",
+]

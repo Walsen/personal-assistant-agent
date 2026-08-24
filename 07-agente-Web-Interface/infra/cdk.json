@@ -1,0 +1,19 @@
+{
+  "app": "uv run python app.py",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "**/__init__.py",
+      "**/__pycache__",
+      "node_modules",
+      ".venv",
+      "*.pyc"
+    ]
+  },
+  "context": {
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/core:target-partitions": ["aws", "aws-cn"]
+  }
+}

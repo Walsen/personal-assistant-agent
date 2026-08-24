@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Assistant Agent</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>Personal Assistant Agent</h1>
+      <button id="new-session-btn" class="ghost-btn" title="Start a new conversation">New session</button>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <div id="interrupt-banner" class="interrupt-banner" hidden></div>
+
+    <form id="chat-form" class="chat-form">
+      <textarea
+        id="chat-input"
+        rows="1"
+        placeholder="Ask about your email, calendar, or docs..."
+        aria-label="Message"
+      ></textarea>
+      <button type="submit" id="send-btn">Send</button>
+    </form>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

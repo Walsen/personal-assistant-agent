@@ -1,0 +1,208 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #2a2e37;
+  --text: #e6e8eb;
+  --muted: #9aa0aa;
+  --accent: #4f8cff;
+  --accent-hover: #3f78e6;
+  --danger: #e5484d;
+  --danger-hover: #cc3b40;
+  --user-bubble: #2b3542;
+  --assistant-bubble: #1d222b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.ghost-btn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.message {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14.5px;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--user-bubble);
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background: var(--assistant-bubble);
+  border-bottom-left-radius: 4px;
+}
+
+.message.system {
+  align-self: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: transparent;
+}
+
+.message.error {
+  align-self: flex-start;
+  background: rgba(229, 72, 77, 0.12);
+  border: 1px solid rgba(229, 72, 77, 0.4);
+  color: #ff9b9e;
+}
+
+.interrupt-banner {
+  margin: 0 20px 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.35);
+}
+
+.interrupt-banner .interrupt-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.interrupt-banner .interrupt-detail {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-bottom: 12px;
+}
+
+.interrupt-banner .interrupt-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.interrupt-actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.interrupt-actions .confirm-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.interrupt-actions .confirm-btn:hover {
+  background: var(--danger-hover);
+}
+
+.interrupt-actions .cancel-btn {
+  background: var(--border);
+  color: var(--text);
+}
+
+.interrupt-actions .cancel-btn:hover {
+  background: #3a3f4a;
+}
+
+.chat-form {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+#chat-input {
+  flex: 1;
+  resize: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  font-family: inherit;
+  max-height: 140px;
+}
+
+#chat-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+#send-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-size: 14.5px;
+  cursor: pointer;
+}
+
+#send-btn:hover {
+  background: var(--accent-hover);
+}
+
+#send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.typing-indicator {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: 10px 14px;
+}
