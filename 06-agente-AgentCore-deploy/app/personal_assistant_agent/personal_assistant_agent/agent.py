@@ -109,10 +109,14 @@ def build_agent(session_id: str = DEFAULT_SESSION_ID) -> Agent:
     )
 
 
-# Default agent instance used by the interactive CLI (run(), below). AgentCore
-# Runtime deployments build a separate per-session agent via build_agent()
-# instead of using this shared instance - see main.py.
-agent = build_agent(DEFAULT_SESSION_ID)
+# Default agent instance used by the interactive CLI (run(), below). Built
+# lazily (only when run() actually starts, not at module import time) so
+# that importing this module - e.g. from main.py's `from .agent import
+# build_agent` - never has a side effect of constructing an Agent or
+# touching the session backend. AgentCore Runtime deployments build a
+# separate per-session agent via build_agent() directly instead of using
+# this shared instance - see main.py.
+agent: Agent | None = None
 
 
 def run() -> None:
@@ -122,6 +126,10 @@ def run() -> None:
     to the agent, which keeps conversation history for the duration of the
     session. Type "exit" or "quit" (or press Ctrl+D / Ctrl+C) to end the chat.
     """
+    global agent
+    if agent is None:
+        agent = build_agent(DEFAULT_SESSION_ID)
+
     print("Personal Assistant Agent - type 'exit' or 'quit' to end the session.\n")
 
     while True:
