@@ -1,0 +1,8 @@
+{
+  "name": "agentcore-cli-tools",
+  "private": true,
+  "description": "Local (project-scoped, non-global) install of the AgentCore CLI (@aws/agentcore), used to run agentcore configure/deploy/invoke for this project.",
+  "dependencies": {
+    "@aws/agentcore": "^0.27.1"
+  }
+}

@@ -1,0 +1,81 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+# (uv.lock is intentionally tracked for reproducible installs)
+
+# devbox
+.devbox/
+
+# direnv
+.direnv/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+.pyre/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# Google OAuth credentials / tokens
+credentials.json
+token.json
+
+# Persisted agent sessions (conversation history, may contain email/document content)
+.sessions/
+
+# Application logs (may contain email subjects, recipients, document titles)
+.logs/
+
+# CDK (infra/) build output and local npm-installed CLI
+infra/cdk.out/
+infra/node_modules/
+infra/.venv/
+
+# AgentCore CLI (agentcore-cli-tools/) local npm install
+agentcore-cli-tools/node_modules/
+
+# AgentCore project state (deployment secrets/local env, CDK build output, CLI cache)
+agentcore/.env.local
+agentcore/cdk/cdk.out/
+agentcore/cdk/node_modules/
+agentcore/.cli/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
