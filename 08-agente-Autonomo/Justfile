@@ -1,0 +1,61 @@
+# Justfile for step 08 - Autonomous weekly digest (Lambda + EventBridge + DynamoDB).
+# Run recipes from this directory (08-agente-Autonomo/) - `just` changes to
+# the directory containing this file automatically.
+#
+# List all recipes: `just` or `just --list`
+# See README.md for the full explanation of each step, including how to
+# obtain Telegram/Discord notification credentials.
+
+set shell := ["bash", "-uc"]
+set positional-arguments := true
+
+# List all available recipes
+default:
+    @just --list
+
+# --- CDK deploy (infra/) ---
+
+# Install CDK dependencies (Python venv + local cdk CLI)
+infra-sync:
+    cd infra && uv sync && npm install
+
+# Preview stack changes. agent_runtime_arn: ARN from step 06 (`agentcore status --json`)
+infra-diff agent_runtime_arn:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk diff -c agentRuntimeArn="$1"
+
+# Deploy the digest stack (optional: schedule_expression, telegram/discord notification creds - see README)
+infra-deploy agent_runtime_arn schedule_expression="" telegram_bot_token="" telegram_chat_id="" discord_webhook_url="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    args=(-c agentRuntimeArn="$1")
+    if [ -n "$2" ]; then args+=(-c scheduleExpression="$2"); fi
+    if [ -n "$3" ]; then args+=(-c telegramBotToken="$3"); fi
+    if [ -n "$4" ]; then args+=(-c telegramChatId="$4"); fi
+    if [ -n "$5" ]; then args+=(-c discordWebhookUrl="$5"); fi
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy "${args[@]}" --require-approval never
+
+# Destroy the digest stack (Lambda, DynamoDB, EventBridge schedule) - does not affect steps 06/07
+infra-destroy agent_runtime_arn:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk destroy -c agentRuntimeArn="$1"
+
+# --- Operations ---
+
+# Manually invoke the digest Lambda once, outside of its weekly schedule
+invoke function_name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    aws lambda invoke --function-name "$1" --region us-east-1 --cli-binary-format raw-in-base64-out /tmp/out.json
+    cat /tmp/out.json
+
+# Tail the digest Lambda's logs
+logs function_name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    aws logs tail "/aws/lambda/$1" --follow --region us-east-1

@@ -1,0 +1,20 @@
+[project]
+name = "personal-assistant-autonomous"
+version = "0.1.0"
+description = "Scheduled autonomous run of the personal assistant agent (weekly digest, no human trigger)."
+readme = "README.md"
+authors = [
+    { name = "Sergio Rodriguez", email = "sergio@ffactory.io" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.35.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "infra",
+]

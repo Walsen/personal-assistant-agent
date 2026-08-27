@@ -99,6 +99,15 @@ comando `cdk deploy` del Paso 3 más abajo.
 └── pyproject.toml         # boto3, para backend/ (workspace con infra/)
 ```
 
+## Atajos con `just`
+
+Este paso incluye un `Justfile` que envuelve los comandos más largos de más
+abajo (`just` ya está disponible vía `devbox`). Ejecuta `just --list` desde
+este directorio para ver todos los atajos disponibles (`just local`,
+`just infra-deploy <arn>`, `just outputs`, `just logs <function-name>`,
+etc.) — cada uno llama exactamente al mismo comando documentado en las
+secciones siguientes.
+
 ## Desarrollo local
 
 Antes de desplegar nada, puedes probar el frontend contra el agente ya

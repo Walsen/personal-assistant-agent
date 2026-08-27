@@ -1,0 +1,115 @@
+# Justfile for step 06 - Amazon Bedrock AgentCore deployment.
+# Run recipes from this directory (06-agente-AgentCore-deploy/) - `just`
+# changes to the directory containing this file automatically.
+#
+# List all recipes: `just` or `just --list`
+# See DEPLOY_AGENTCORE.md / README.md for the full explanation of each step.
+
+set shell := ["bash", "-uc"]
+set positional-arguments := true
+
+agentcore := "./agentcore-cli-tools/node_modules/.bin/agentcore"
+
+# List all available recipes
+default:
+    @just --list
+
+# --- AgentCore CLI ---
+
+# Install the @aws/agentcore CLI locally (project dependency, not global)
+cli-install:
+    cd agentcore-cli-tools && npm install
+
+# Validate agentcore/agentcore.json and agentcore/aws-targets.json
+validate:
+    {{agentcore}} validate
+
+# --- Local agent development (app/personal_assistant_agent/) ---
+
+# Install the agent's Python dependencies
+agent-sync:
+    cd app/personal_assistant_agent && uv sync
+
+# Run the HTTP entrypoint locally (main.py) at http://localhost:8080
+agent-dev:
+    cd app/personal_assistant_agent && uv run python main.py
+
+# --- CDK prerequisites: S3 sessions bucket + Secrets Manager secret (infra/) ---
+
+# Install CDK dependencies (Python venv + local cdk CLI)
+infra-sync:
+    cd infra && uv sync && npm install
+
+# Preview prerequisite stack changes (pass execution_role_arn once the agent is deployed)
+infra-diff execution_role_arn="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    if [ -n "$1" ]; then
+      JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk diff -c executionRoleArn="$1"
+    else
+      JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk diff
+    fi
+
+# Deploy the prerequisite stack (pass execution_role_arn to grant bucket access post-deploy)
+infra-deploy execution_role_arn="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    if [ -n "$1" ]; then
+      JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy -c executionRoleArn="$1" --require-approval never
+    else
+      JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy --require-approval never
+    fi
+
+# Destroy the prerequisite stack (bucket + secret). Prompts for confirmation.
+infra-destroy:
+    cd infra && JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk destroy
+
+# --- Google OAuth token ---
+
+# Upload the local token.json to the given Secrets Manager secret (id or ARN)
+upload-token secret_id:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    aws secretsmanager put-secret-value --secret-id "$1" --secret-string file://token.json --region us-east-1
+
+# --- AgentCore Runtime lifecycle ---
+
+# Deploy the agent to AgentCore Runtime
+deploy:
+    {{agentcore}} deploy --target default --yes
+
+# Show the deployed agent's status
+status:
+    {{agentcore}} status
+
+# Show the deployed agent's status as JSON (e.g. `just status-json | jq -r '.resources[0].identifier'`)
+status-json:
+    {{agentcore}} status --json
+
+# Invoke the deployed agent with a text prompt
+invoke prompt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{agentcore}} invoke "$1"
+
+# Resolve a pending interrupt (e.g. delete_email confirmation); response defaults to "y"
+resolve-interrupt interrupt_id response="y":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    payload=$(jq -n --arg id "$1" --arg resp "$2" '{interrupt_responses: [{interrupt_id: $id, response: $resp}]}')
+    {{agentcore}} invoke "$payload"
+
+# Stream/search agent runtime logs
+logs:
+    {{agentcore}} logs
+
+# List recent traces
+traces:
+    {{agentcore}} traces
+
+# Remove the deployed AgentCore Runtime (does NOT touch the infra-deploy bucket/secret)
+destroy:
+    {{agentcore}} remove agent --name personal_assistant_agent --yes
+    {{agentcore}} deploy --target default --yes

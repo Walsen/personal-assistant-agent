@@ -64,6 +64,16 @@ puede ejecutarse dentro de un contenedor sin interfaz gráfica.
 }
 ```
 
+## Atajos con `just`
+
+Este paso incluye un `Justfile` que envuelve los comandos más largos de más
+abajo (`just` ya está disponible vía `devbox`, sin instalación adicional).
+Ejecuta `just --list` desde este directorio para ver todos los atajos
+disponibles (`just cli-install`, `just deploy`, `just status`,
+`just invoke "Hola"`, `just logs`, `just infra-deploy`, etc.) — cada uno
+llama exactamente al mismo comando documentado en las secciones siguientes,
+así que puedes usar el que prefieras.
+
 ## Configuración de Google OAuth (igual que en pasos anteriores)
 
 ### 1. Crear un proyecto en Google Cloud

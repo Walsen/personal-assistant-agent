@@ -1,0 +1,65 @@
+# Justfile for step 07 - Web chat interface (Lambda + S3 + CloudFront).
+# Run recipes from this directory (07-agente-Web-Interface/) - `just`
+# changes to the directory containing this file automatically.
+#
+# List all recipes: `just` or `just --list`
+# See README.md for the full explanation of each step.
+
+set shell := ["bash", "-uc"]
+set positional-arguments := true
+
+# List all available recipes
+default:
+    @just --list
+
+# --- Local development ---
+
+# Install backend dependencies (boto3)
+sync:
+    uv sync
+
+# Run the local dev backend server at http://127.0.0.1:8000 (requires AGENT_RUNTIME_ARN env var)
+local:
+    cd backend && uv run python local_server.py
+
+# --- CDK deploy (infra/) ---
+
+# Install CDK dependencies (Python venv + local cdk CLI)
+infra-sync:
+    cd infra && uv sync && npm install
+
+# Preview stack changes. agent_runtime_arn: ARN from step 06 (`agentcore status --json`)
+infra-diff agent_runtime_arn:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk diff -c agentRuntimeArn="$1"
+
+# Deploy the web interface stack (optionally pass basic_auth_username/basic_auth_password)
+infra-deploy agent_runtime_arn basic_auth_username="" basic_auth_password="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    args=(-c agentRuntimeArn="$1")
+    if [ -n "$2" ]; then args+=(-c basicAuthUsername="$2"); fi
+    if [ -n "$3" ]; then args+=(-c basicAuthPassword="$3"); fi
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy "${args[@]}" --require-approval never
+
+# Destroy the web interface stack (Lambda, S3, CloudFront) - does not affect step 06
+infra-destroy agent_runtime_arn:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd infra
+    JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk destroy -c agentRuntimeArn="$1"
+
+# --- Operations ---
+
+# Show the deployed stack's outputs (CloudFront URL, function name, basic auth creds)
+outputs:
+    aws cloudformation describe-stacks --stack-name PersonalAssistantWebInterface --query "Stacks[0].Outputs" --region us-east-1
+
+# Tail the chat Lambda's logs
+logs function_name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    aws logs tail "/aws/lambda/$1" --follow --region us-east-1
