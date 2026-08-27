@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Pre-commit hook: blocks committing likely secrets/credential files, scans
+# staged changes for a few high-confidence secret patterns, and runs a
+# quick static check (syntax compile + ruff if available) on staged Python
+# files.
+#
+# Enabled via: git config core.hooksPath .githooks (see .githooks/README.md)
+# Bypass only when you're certain there's no real secret: git commit --no-verify
+set -u
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/common.sh
+source "$REPO_ROOT/.githooks/lib/common.sh"
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+FAIL=0
+
+echo "== pre-commit: checking for credential/secret filenames =="
+if ! printf '%s\n' "$STAGED_FILES" | check_blocked_filenames; then
+  FAIL=1
+fi
+
+echo "== pre-commit: scanning staged changes for secrets =="
+if ! git diff --cached | scan_diff_for_secrets; then
+  FAIL=1
+fi
+
+PY_FILES=$(printf '%s\n' "$STAGED_FILES" | grep -E '\.py$' || true)
+if [ -n "$PY_FILES" ]; then
+  echo "== pre-commit: quick static check on staged Python files =="
+  if ! printf '%s\n' "$PY_FILES" | quick_static_check; then
+    FAIL=1
+  fi
+fi
+
+if [ "$FAIL" -ne 0 ]; then
+  echo ""
+  echo "${RED}Pre-commit checks failed.${NC} Fix the issues above, or if this is a"
+  echo "confirmed false positive (e.g. a documented placeholder), re-commit with"
+  echo "--no-verify."
+  exit 1
+fi
+
+echo "Pre-commit checks passed."
+exit 0

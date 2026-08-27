@@ -1,0 +1,23 @@
+# Root-level .gitignore for repo-wide tooling (devbox for git-hooks
+# tooling: gitleaks, just, direnv - see devbox.json/.envrc at this level).
+# Each NN-step/ directory has its own separate .gitignore for its own
+# Python/AWS/Node toolchain artifacts.
+
+# devbox
+.devbox/
+
+# direnv
+.direnv/
+
+# Byte-compiled / optimized files (in case anything is ever run from the repo root)
+__pycache__/
+*.py[cod]
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

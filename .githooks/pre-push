@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Pre-push hook: re-scans the commits about to be pushed for secrets, then
+# runs the pytest suite for any step directory (00-08) touched by this
+# push. Fails the push if secrets are found or any affected step's tests
+# fail.
+#
+# Enabled via: git config core.hooksPath .githooks (see .githooks/README.md)
+# Escape hatches:
+#   git push --no-verify   skip this hook entirely
+#   SKIP_TESTS=1 git push   still scan for secrets, but skip running tests
+set -u
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=lib/common.sh
+source "$REPO_ROOT/.githooks/lib/common.sh"
+cd "$REPO_ROOT" || exit 1
+
+EMPTY_TREE=$(git hash-object -t tree /dev/null)
+FAIL=0
+ALL_CHANGED_FILES=""
+
+# git invokes pre-push with one line per ref being pushed on stdin:
+#   <local ref> <local sha1> <remote ref> <remote sha1>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "${local_sha:-}" ] && continue
+  if [[ "$local_sha" =~ ^0+$ ]]; then
+    continue # deleting the remote ref - nothing to scan/test
+  fi
+  if [[ "$remote_sha" =~ ^0+$ ]]; then
+    base="$EMPTY_TREE" # new ref on the remote - scan/test the full history being pushed
+  else
+    base="$remote_sha"
+  fi
+
+  echo "== pre-push: scanning $remote_ref ($base..$local_sha) for secrets =="
+  if ! git diff "$base" "$local_sha" | scan_diff_for_secrets; then
+    FAIL=1
+  fi
+
+  changed=$(git diff --name-only "$base" "$local_sha")
+  ALL_CHANGED_FILES="$ALL_CHANGED_FILES
+$changed"
+done
+
+if [ "$FAIL" -ne 0 ]; then
+  echo ""
+  echo "${RED}Push blocked:${NC} possible secret(s) found above. Remove them (and, if"
+  echo "already committed, rotate the credential) before pushing, or re-run with"
+  echo "--no-verify if this is a confirmed false positive."
+  exit 1
+fi
+
+if [ "${SKIP_TESTS:-0}" = "1" ]; then
+  echo "SKIP_TESTS=1 set - skipping test run."
+  exit 0
+fi
+
+# Map changed files to step directories (any top-level dir with its own
+# devbox.json + tests/, matching this repo's per-step layout) and run each
+# affected step's test suite once.
+AFFECTED_STEPS=$(printf '%s\n' "$ALL_CHANGED_FILES" | awk -F/ 'NF>1 {print $1}' | sort -u)
+
+for step in $AFFECTED_STEPS; do
+  [ -d "$step" ] || continue
+  [ -f "$step/devbox.json" ] || continue
+  [ -d "$step/tests" ] || continue
+
+  echo ""
+  echo "== pre-push: running tests for $step =="
+  if command -v devbox >/dev/null 2>&1; then
+    RUN_CMD=(devbox run -- uv run pytest -q)
+  elif command -v uv >/dev/null 2>&1; then
+    RUN_CMD=(uv run pytest -q)
+  else
+    echo "${RED}Push blocked:${NC} neither 'devbox' nor 'uv' found on PATH - cannot run"
+    echo "$step's tests. Install one of them, or bypass with SKIP_TESTS=1 or --no-verify."
+    FAIL=1
+    continue
+  fi
+
+  if ! (cd "$step" && "${RUN_CMD[@]}"); then
+    echo "${RED}Push blocked:${NC} tests failed in $step."
+    FAIL=1
+  fi
+done
+
+# Step 06's real (deployed) agent code lives in its own sub-venv under
+# app/personal_assistant_agent/, not the step root - handle it separately
+# since the loop above only checks <step>/tests.
+if printf '%s\n' "$AFFECTED_STEPS" | grep -qx "06-agente-AgentCore-deploy"; then
+  APP_DIR="06-agente-AgentCore-deploy/app/personal_assistant_agent"
+  if [ -d "$APP_DIR/tests" ]; then
+    echo ""
+    echo "== pre-push: running tests for $APP_DIR =="
+    if command -v uv >/dev/null 2>&1; then
+      if ! (cd "$APP_DIR" && uv run pytest -q); then
+        echo "${RED}Push blocked:${NC} tests failed in $APP_DIR."
+        FAIL=1
+      fi
+    else
+      echo "${RED}Push blocked:${NC} 'uv' not found on PATH - cannot run $APP_DIR's tests."
+      FAIL=1
+    fi
+  fi
+fi
+
+if [ "$FAIL" -ne 0 ]; then
+  exit 1
+fi
+
+echo ""
+echo "Pre-push checks passed."
+exit 0

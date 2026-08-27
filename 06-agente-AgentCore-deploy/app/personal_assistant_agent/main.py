@@ -38,9 +38,13 @@ Response payload shape (pending confirmation):
     }
 """
 
+import logging
+
 from bedrock_agentcore import BedrockAgentCoreApp
 
 from personal_assistant_agent.agent import build_agent
+
+logger = logging.getLogger(__name__)
 
 app = BedrockAgentCoreApp()
 
@@ -56,7 +60,16 @@ def invoke(payload: dict, context) -> dict:
     Returns:
         A JSON-serializable dict describing either a completed response or
         a pending interrupt the caller must resolve in a follow-up request.
+        Malformed input (missing/wrong-typed prompt, malformed
+        interrupt_responses) returns {"status": "error", "message": ...}
+        instead of ever reaching build_agent()/the model - see
+        _validate_payload().
     """
+    error = _validate_payload(payload)
+    if error:
+        logger.warning("invoke rejected malformed payload | reason=%s", error)
+        return {"status": "error", "message": error}
+
     session_id = context.session_id or "default"
     agent = build_agent(session_id)
 
@@ -72,6 +85,39 @@ def invoke(payload: dict, context) -> dict:
         result = agent(prompt)
 
     return _format_response(result)
+
+
+def _validate_payload(payload) -> str | None:
+    """Validate a raw invocation payload before it reaches build_agent() or
+    the model, per the "Invocation Input" invariant: runtime payloads must
+    be validated and text prompts required to be strings.
+
+    Returns:
+        None if the payload is valid, otherwise a short human-readable
+        message describing why it was rejected.
+    """
+    if not isinstance(payload, dict):
+        return "Invalid request: payload must be a JSON object."
+
+    if "prompt" in payload and not isinstance(payload["prompt"], str):
+        return "Invalid request: 'prompt' must be a string."
+
+    interrupt_responses = payload.get("interrupt_responses")
+    if interrupt_responses is not None:
+        if not isinstance(interrupt_responses, list):
+            return "Invalid request: 'interrupt_responses' must be a list."
+        for entry in interrupt_responses:
+            if (
+                not isinstance(entry, dict)
+                or "interrupt_id" not in entry
+                or "response" not in entry
+            ):
+                return (
+                    "Invalid request: each entry in 'interrupt_responses' must be an "
+                    "object with 'interrupt_id' and 'response'."
+                )
+
+    return None
 
 
 def _format_response(result) -> dict:

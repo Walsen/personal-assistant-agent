@@ -8,7 +8,8 @@
     "awscli2@latest",
     "just@latest",
     "direnv@latest",
-    "nodejs@latest"
+    "nodejs@latest",
+    "gitleaks@latest"
   ],
   "shell": {
     "init_hook": [

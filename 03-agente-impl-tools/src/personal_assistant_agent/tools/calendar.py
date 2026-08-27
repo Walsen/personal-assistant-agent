@@ -1,8 +1,14 @@
 """Google Calendar tools for the personal assistant agent."""
 
+import logging
+from datetime import datetime, timezone
+
 from strands import tool
 
-from .auth import get_calendar_service
+from .auth import AuthenticationError, get_calendar_service
+from .errors import ToolExecutionError, google_api_call
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -15,32 +21,29 @@ def list_upcoming_events(max_results: int = 10) -> str:
     Returns:
         A formatted list of upcoming events with title, start time, and event ID.
     """
-    from datetime import datetime, timezone
-
-    service = get_calendar_service()
-    now = datetime.now(timezone.utc).isoformat()
-    response = (
-        service.events()
-        .list(
-            calendarId="primary",
-            timeMin=now,
-            maxResults=max_results,
-            singleEvents=True,
-            orderBy="startTime",
+    logger.info("list_upcoming_events called | max_results=%s", max_results)
+    try:
+        service = get_calendar_service()
+        now = datetime.now(timezone.utc).isoformat()
+        response = google_api_call(
+            "list_upcoming_events",
+            lambda: service.events()
+            .list(calendarId="primary", timeMin=now, maxResults=max_results, singleEvents=True, orderBy="startTime")
+            .execute(),
         )
-        .execute()
-    )
-    events = response.get("items", [])
-    if not events:
-        return "No upcoming events found."
+        events = response.get("items", [])
+        if not events:
+            return "No upcoming events found."
 
-    lines = []
-    for event in events:
-        start = event["start"].get("dateTime", event["start"].get("date"))
-        summary = event.get("summary", "(no title)")
-        lines.append(f"- {summary} at {start} (ID: {event['id']})")
+        lines = []
+        for event in events:
+            start = event["start"].get("dateTime", event["start"].get("date"))
+            summary = event.get("summary", "(no title)")
+            lines.append(f"- {summary} at {start} (ID: {event['id']})")
 
-    return "\n".join(lines)
+        return "\n".join(lines)
+    except (ToolExecutionError, AuthenticationError) as e:
+        return str(e)
 
 
 @tool
@@ -56,12 +59,20 @@ def create_event(summary: str, start_time: str, end_time: str, description: str 
     Returns:
         Confirmation message with the created event ID and link.
     """
-    service = get_calendar_service()
-    event_body = {
-        "summary": summary,
-        "description": description,
-        "start": {"dateTime": start_time},
-        "end": {"dateTime": end_time},
-    }
-    created = service.events().insert(calendarId="primary", body=event_body).execute()
-    return f"Event created: {created.get('summary')} (ID: {created['id']}). Link: {created.get('htmlLink')}"
+    logger.info("create_event called | summary=%r start=%s end=%s", summary, start_time, end_time)
+    try:
+        service = get_calendar_service()
+        event_body = {
+            "summary": summary,
+            "description": description,
+            "start": {"dateTime": start_time},
+            "end": {"dateTime": end_time},
+        }
+        created = google_api_call(
+            "create_event",
+            lambda: service.events().insert(calendarId="primary", body=event_body).execute(),
+        )
+        logger.info("create_event succeeded | event_id=%s", created.get("id"))
+        return f"Event created: {created.get('summary')} (ID: {created['id']}). Link: {created.get('htmlLink')}"
+    except (ToolExecutionError, AuthenticationError) as e:
+        return str(e)

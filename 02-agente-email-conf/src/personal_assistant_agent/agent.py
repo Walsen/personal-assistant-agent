@@ -1,7 +1,14 @@
 """Personal assistant agent definition."""
 
+import logging
+
 from strands import Agent
 from strands.models.bedrock import BedrockModel
+
+from .logging_config import configure_logging
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are a personal assistant AI agent with access to the user's 
 Gmail, Google Calendar, and Google Docs. You can:

@@ -1,11 +1,15 @@
 """Gmail tools for the personal assistant agent."""
 
 import base64
+import logging
 from email.mime.text import MIMEText
 
 from strands import tool
 
-from .auth import get_gmail_service
+from .auth import AuthenticationError, get_gmail_service
+from .errors import ToolExecutionError, google_api_call
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -19,33 +23,35 @@ def list_recent_emails(max_results: int = 10, query: str = "") -> str:
     Returns:
         A formatted list of matching emails with sender, subject, and snippet.
     """
-    service = get_gmail_service()
-    response = (
-        service.users()
-        .messages()
-        .list(userId="me", maxResults=max_results, q=query)
-        .execute()
-    )
-    messages = response.get("messages", [])
-    if not messages:
-        return "No emails found."
-
-    lines = []
-    for msg_ref in messages:
-        msg = (
-            service.users()
-            .messages()
-            .get(userId="me", id=msg_ref["id"], format="metadata",
-                 metadataHeaders=["From", "Subject"])
-            .execute()
+    logger.info("list_recent_emails called | max_results=%s query=%r", max_results, query)
+    try:
+        service = get_gmail_service()
+        response = google_api_call(
+            "list_recent_emails",
+            lambda: service.users().messages().list(userId="me", maxResults=max_results, q=query).execute(),
         )
-        headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
-        sender = headers.get("From", "(unknown sender)")
-        subject = headers.get("Subject", "(no subject)")
-        snippet = msg.get("snippet", "")
-        lines.append(f"- From: {sender}\n  Subject: {subject}\n  Snippet: {snippet}\n  ID: {msg_ref['id']}")
+        messages = response.get("messages", [])
+        if not messages:
+            return "No emails found."
 
-    return "\n".join(lines)
+        lines = []
+        for msg_ref in messages:
+            msg = google_api_call(
+                "list_recent_emails",
+                lambda ref=msg_ref: service.users()
+                .messages()
+                .get(userId="me", id=ref["id"], format="metadata", metadataHeaders=["From", "Subject"])
+                .execute(),
+            )
+            headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
+            sender = headers.get("From", "(unknown sender)")
+            subject = headers.get("Subject", "(no subject)")
+            snippet = msg.get("snippet", "")
+            lines.append(f"- From: {sender}\n  Subject: {subject}\n  Snippet: {snippet}\n  ID: {msg_ref['id']}")
+
+        return "\n".join(lines)
+    except (ToolExecutionError, AuthenticationError) as e:
+        return str(e)
 
 
 @tool
@@ -58,13 +64,20 @@ def get_email(message_id: str) -> str:
     Returns:
         The email's sender, subject, and body text.
     """
-    service = get_gmail_service()
-    msg = service.users().messages().get(userId="me", id=message_id, format="full").execute()
-    headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
-    sender = headers.get("From", "(unknown sender)")
-    subject = headers.get("Subject", "(no subject)")
-    body = _extract_body(msg["payload"])
-    return f"From: {sender}\nSubject: {subject}\n\n{body}"
+    logger.info("get_email called | message_id=%s", message_id)
+    try:
+        service = get_gmail_service()
+        msg = google_api_call(
+            "get_email",
+            lambda: service.users().messages().get(userId="me", id=message_id, format="full").execute(),
+        )
+        headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
+        sender = headers.get("From", "(unknown sender)")
+        subject = headers.get("Subject", "(no subject)")
+        body = _extract_body(msg["payload"])
+        return f"From: {sender}\nSubject: {subject}\n\n{body}"
+    except (ToolExecutionError, AuthenticationError) as e:
+        return str(e)
 
 
 def _extract_body(payload: dict) -> str:
@@ -92,11 +105,19 @@ def send_email(to: str, subject: str, body: str) -> str:
     Returns:
         Confirmation message with the sent message ID.
     """
-    service = get_gmail_service()
-    message = MIMEText(body)
-    message["to"] = to
-    message["subject"] = subject
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+    logger.info("send_email called | to=%s subject=%r", to, subject)
+    try:
+        service = get_gmail_service()
+        message = MIMEText(body)
+        message["to"] = to
+        message["subject"] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
 
-    sent = service.users().messages().send(userId="me", body={"raw": raw}).execute()
-    return f"Email sent to {to}. Message ID: {sent['id']}"
+        sent = google_api_call(
+            "send_email",
+            lambda: service.users().messages().send(userId="me", body={"raw": raw}).execute(),
+        )
+        logger.info("send_email succeeded | to=%s message_id=%s", to, sent["id"])
+        return f"Email sent to {to}. Message ID: {sent['id']}"
+    except (ToolExecutionError, AuthenticationError) as e:
+        return str(e)
