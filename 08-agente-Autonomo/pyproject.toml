@@ -21,6 +21,7 @@ members = [
 
 [tool.pytest.ini_options]
 pythonpath = ["backend"]
+testpaths = ["tests"]
 
 [dependency-groups]
 dev = [

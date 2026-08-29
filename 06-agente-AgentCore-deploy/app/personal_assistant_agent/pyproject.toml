@@ -28,3 +28,10 @@ dev = [
     "pytest>=9.1.1",
     "pytest-mock>=3.15.1",
 ]
+
+[tool.pytest.ini_options]
+# main.py lives in this directory (alongside the tests/ package), so it must
+# be importable as a top-level module (`from main import invoke`). The
+# personal_assistant_agent package is here too, so "." covers both.
+pythonpath = ["."]
+testpaths = ["tests"]
